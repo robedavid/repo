@@ -1,0 +1,10 @@
+#!/bin/sh
+set -euo pipefail
+
+if [ "$#" -eq 0 ]; then
+    set -- .
+fi
+
+python -m black "$@"
+
+git add "$@"
