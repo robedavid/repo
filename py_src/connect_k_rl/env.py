@@ -1,15 +1,8 @@
-from dataclasses import dataclass
-
+from rl.env_base import RLEnv, StepResult
 import numpy as np
 
 
-@dataclass
-class StepResult:
-    reward: float
-    done: bool
-
-
-class ConnectKEnv:
+class ConnectKEnv(RLEnv):
     def __init__(self, nrows: int = 3, ncols: int = None, k: int = None):
         self.nrows = nrows
         self.ncols = ncols or nrows
@@ -22,10 +15,15 @@ class ConnectKEnv:
         self.current_player = 1
         self.nmoves = 0
         self.winner = None
+        return self.obs
 
     @property
     def legal_actions(self) -> np.ndarray:
         return np.flatnonzero(self.board.ravel() == 0).astype(np.int32, copy=False)
+
+    @property
+    def obs(self):
+        return self.board.astype("int8", copy=False).tobytes()
 
     @property
     def last_move_wins(self):
@@ -43,7 +41,8 @@ class ConnectKEnv:
                         break
         return False
 
-    def step(self, row: int, col: int) -> StepResult:
+    def step(self, action: int) -> StepResult:
+        row, col = divmod(action, self.ncols)
         self.nmoves += 1
         if self.board[row, col] != 0:
             return StepResult(reward=-1, done=True)
