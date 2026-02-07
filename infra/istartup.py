@@ -46,4 +46,4 @@ import requests
 
 requests.packages.urllib3.disable_warnings()
 
-print(f"Startup Script succesfully loaded: {os.path.abspath(__file__)}")
+print(f"Startup Script succesfully loaded")
