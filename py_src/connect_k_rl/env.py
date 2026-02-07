@@ -20,6 +20,8 @@ class ConnectKEnv:
     def reset(self):
         self.board = np.zeros((self.nrows, self.ncols), dtype=np.int8)
         self.current_player = 1
+        self.nmoves = 0
+        self.winner = None
 
     @property
     def legal_actions(self) -> np.ndarray:
@@ -27,27 +29,22 @@ class ConnectKEnv:
 
     @property
     def last_move_wins(self):
-        for direction_row in (-1, 0, 1):
-            for direction_col in (-1, 0, 1):
-                if direction_col == 0 and direction_row == 0:
-                    continue
-                max_row_index = self.last_move[0] + (self.k - 1) * direction_row
-                if max_row_index < 0 or max_row_index >= self.nrows:
-                    continue
-
-                max_col_index = self.last_move[1] + (self.k - 1) * direction_col
-                if max_col_index < 0 or max_col_index >= self.ncols:
-                    continue
-
-                winning_line = all(
-                    self.board[self.last_move[0] + i * direction_row, self.last_move[1] + i * direction_col] == self.board[self.last_move[0], self.last_move[1]]
-                    for i in range(self.k)
-                )
-                if winning_line:
-                    return True
+        for direction_row, direction_col in [(0, 1), (1, 0), (1, 1), (1, -1)]:
+            count = 1
+            for eps in [-1, 1]:
+                for i in range(1, self.k):
+                    nr = self.last_move[0] + eps * i * direction_row
+                    nc = self.last_move[1] + eps * i * direction_col
+                    if 0 <= nr < self.nrows and 0 <= nc < self.ncols and self.board[nr, nc] == self.current_player:
+                        count += 1
+                        if count >= self.k:
+                            return True
+                    else:
+                        break
         return False
 
     def step(self, row: int, col: int) -> StepResult:
+        self.nmoves += 1
         if self.board[row, col] != 0:
             return StepResult(reward=-1, done=True)
 
@@ -55,14 +52,21 @@ class ConnectKEnv:
         self.last_move = (row, col)
 
         if self.last_move_wins:
+            self.winner = self.current_player
             return StepResult(reward=1, done=True)
 
         self.current_player *= -1
         return StepResult(reward=0, done=len(self.legal_actions) == 0)
 
     def render(self):
-        symbols = {0: ".", 1: "X", 2: "O"}
+        symbols = {0: ".", 1: "X", -1: "O"}
         lines = list()
         for r in range(self.nrows):
             lines.append(" ".join(symbols[int(x)] for x in self.board[r]))
+        if self.winner is not None:
+            print(f"Board played {self.nmoves} moves -- Winner is {symbols[self.winner]}")
+        elif self.nmoves == self.ncols * self.nrows:
+            print(f"Board played {self.nmoves} moves -- Draw ! ")
+        else:
+            print(f"Board played {self.nmoves} moves -- Next player is {self.current_player}")
         print("\n".join(lines))
