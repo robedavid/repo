@@ -30,15 +30,25 @@ class _DQNMLP(torch.nn.Module):
 
 class DQNAgent(RLAgent):
     def __init__(
-        self, n_actions: int, lr: float = 2.5e-4, warmup: int = 5_000, target_sync_every: int = 2_000, batch_size: int = 128, replay_capacity: int = 200_000
+        self,
+        n_actions: int,
+        lr: float = 2.5e-4,
+        gamma: float = 0.99,
+        warmup: int = 5_000,
+        target_sync_every: int = 2_000,
+        batch_size: int = 128,
+        learn_every: int = 32,
+        replay_capacity: int = 200_000,
     ):
         super().__init__()
         self.q: [_DQNMLP] = _DQNMLP(n_actions).to(self.device)
         self.tgt: [_DQNMLP] = _DQNMLP(n_actions).to(self.device)
         self.tgt.load_state_dict(self.q.state_dict())
         self.replay: [_Transition] = deque(maxlen=replay_capacity)
+        self.gamma = gamma
         self.warmup: Final[int] = warmup
         self.batch_size: Final[int] = batch_size
+        self.learn_every: Final[int] = learn_every
         self.target_sync_every: Final[int] = target_sync_every
         self.opt = torch.optim.Adam(self.q.parameters(), lr=lr)
         self.n_updates = 0
@@ -74,7 +84,8 @@ class DQNAgent(RLAgent):
         self.replay.append(_Transition(s=s, action=action, reward=res.reward, sp=sp, done=res.done, legals=game.legal_actions if not res.done else list()))
         if not self._should_learn:
             return
-        self._learn_batch()
+        if self.n_updates % self.learn_every == 0:
+            self._learn_batch()
         self.n_updates += 1
         if self.n_updates % self.target_sync_every == 0:
             self.tgt.load_state_dict(self.q.state_dict())
@@ -93,11 +104,11 @@ class DQNAgent(RLAgent):
             q_next_all = self.tgt(sp)
             max_next = torch.empty((self.batch_size,), device=self.device)
             for i, t in enumerate(batch):
-                max_next[i] = q_next_all[i][t.legals].max()
+                max_next[i] = q_next_all[i][t.legals].max() if len(t.legals) > 0 else torch.tensor(0, device=self.device)
 
             target = rewards + self.gamma * (1.0 - dones) * max_next
-            loss = torch.nn.functional.smooth_l1_loss(q_sa, target)
-            self.opt.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.q.parameters(), 10.0)
-            self.opt.step()
+        loss = torch.nn.functional.smooth_l1_loss(q_sa, target)
+        self.opt.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.q.parameters(), 10.0)
+        self.opt.step()

@@ -3,9 +3,10 @@ import numpy as np
 
 
 class ConnectKEnv(RLEnv):
-    def __init__(self, nrows: int = 3, ncols: int = None, k: int = None):
+    def __init__(self, nrows: int = 9, ncols: int = 8, k: int = 4, use_gravity: bool = True):
         self.nrows = nrows
         self.ncols = ncols or nrows
+        self.use_gravity = use_gravity
         self.k = k or nrows
         assert self.k <= self.nrows and self.k <= self.ncols
         self.reset()
@@ -19,6 +20,8 @@ class ConnectKEnv(RLEnv):
 
     @property
     def legal_actions(self) -> np.ndarray:
+        if self.use_gravity:
+            return np.flatnonzero(self.board[0, :] == 0).astype(np.int32, copy=False)
         return np.flatnonzero(self.board.ravel() == 0).astype(np.int32, copy=False)
 
     @property
@@ -42,8 +45,14 @@ class ConnectKEnv(RLEnv):
         return False
 
     def step(self, action: int) -> StepResult:
-        row, col = divmod(action, self.ncols)
         self.nmoves += 1
+        if self.use_gravity:
+            empties = np.flatnonzero(self.board[:, action] == 0)
+            if len(empties) == 0:
+                return StepResult(reward=-1, done=True)
+            row, col = int(empties[-1]), action
+        else:
+            row, col = divmod(action, self.ncols)
         if self.board[row, col] != 0:
             return StepResult(reward=-1, done=True)
 
@@ -69,3 +78,8 @@ class ConnectKEnv(RLEnv):
         else:
             print(f"Board played {self.nmoves} moves -- Next player is {self.current_player}")
         print("\n".join(lines))
+
+
+class TicTacToe(ConnectKEnv):
+    def __init__(self):
+        super().__init__(nrows=3, ncols=3, k=3, use_gravity=False)
