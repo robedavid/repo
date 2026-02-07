@@ -4,10 +4,8 @@ import builtins
 import warnings
 
 for path in [os.path.join(os.environ["REPO"], "py_src"), os.environ["REPO"]]:
-
     if path not in sys.path:
         print(f"Adding {path} to sys_path")
-
         sys.path.append(path)
 
 from IPython import get_ipython
