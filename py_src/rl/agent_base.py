@@ -34,12 +34,15 @@ class RLAgent:
                 for idx, player in enumerate(players):
                     if verbose:
                         print(f"Player {player.name} playing")
-                        game.render()
                     res = game.step(player.optimal_choice(game).action)
+                    if verbose:
+                        game.render()
                     if res.done:
                         is_done = True
                         if res.reward > 0:
                             out[player.name] += 1
+                            if verbose:
+                                print(f"Player {player.name} won!")
                         else:
                             out["draw"] += 1
                         break

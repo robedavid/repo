@@ -76,8 +76,8 @@ class ConnectKEnv(RLEnv):
         elif self.nmoves == self.ncols * self.nrows:
             print(f"Board played {self.nmoves} moves -- Draw ! ")
         else:
-            print(f"Board played {self.nmoves} moves -- Next player is {self.current_player}")
-        print("\n".join(lines))
+            print(f"Board played {self.nmoves} moves")
+        print("\n".join(lines) + "\n")
 
 
 class TicTacToe(ConnectKEnv):
