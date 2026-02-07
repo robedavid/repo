@@ -21,10 +21,16 @@ def train_tabular(**kwargs):
 
     game = ConnectKEnv(**kwargs)
     player = TabularQLearner()
-    # player.train(game=game, eval_every=1_000)
-    winrate = player.agent_duel(player, RandomLearner(), game=game, n_games=1_000)
-    print(f"winrate vs random={winrate}")
+    player.train(game=game, eval_every=5_000)
+
+
+def train_nn(**kwargs):
+    from rl.dqn_learner import DQNAgent
+
+    game = ConnectKEnv(**kwargs)
+    player = DQNAgent(n_actions=game.nrows * game.ncols)
+    player.train(game=game, eval_every=5_000)
 
 
 if __name__ == "__main__":
-    train_tabular()
+    train_nn()

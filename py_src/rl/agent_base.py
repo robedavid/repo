@@ -13,7 +13,8 @@ class ScoredAction:
 
 
 class RLAgent:
-    def __init__(self, eps_start: float = 1, eps_end: float = 0.05, eps_decay: float = 0.9995):
+    def __init__(self, eps_start: float = 1, eps_end: float = 0.01, eps_decay: float = 0.9995, name: str = None):
+        self.name = name or self.__class__.__name__
         self.eps = eps_start
         self.eps_end = eps_end
         self.eps_decay = eps_decay
@@ -24,7 +25,7 @@ class RLAgent:
 
     @classmethod
     def agent_duel(cls, lhs, rhs, game: RLEnv, n_games: int):
-        out = {"lhs": 0, "rhs": 0, "draw": 0}
+        out = {lhs.name: 0, rhs.name: 0, "draw": 0}
         for ep in range(n_games):
             obs = game.reset()
             players = [lhs, rhs] if ep % 2 == 0 else [rhs, lhs]
@@ -35,7 +36,7 @@ class RLAgent:
                     if res.done:
                         is_done = True
                         if res.reward > 0:
-                            out["lhs" if idx == (ep % 2) else "rhs"] += 1
+                            out[lhs.name if idx == (ep % 2) else rhs.name] += 1
                         else:
                             out["draw"] += 1
                         break
@@ -43,10 +44,17 @@ class RLAgent:
         return {k: v / n_games for k, v in out.items()}
 
     @final
-    def train(self, game: RLEnv, episodes: int = 50_000, eval_every: int = 0):
+    def train(self, game: RLEnv, episodes: int = 30_000, eval_every: int = 0):
         from tqdm import tqdm
 
         for ep in tqdm(range(episodes)):
+            if eval_every > 0 and ep % eval_every == 0:
+                from rl.random_learner import RandomLearner
+
+                winrate = self.agent_duel(self, RandomLearner(), game=game, n_games=200)
+                winrate = winrate[self.name] / sum([v for k, v in winrate.items() if k != "draw"])
+                print(f"Episode {ep} | eps={self.eps:.3f} | winrate vs random={winrate:.2%}")
+
             game.reset()
             while True:
                 cur_obs = game.obs
@@ -60,11 +68,6 @@ class RLAgent:
                     break
 
             self._decay_eps()
-            if eval_every > 0 and ep % eval_every == 0 and ep > 0:
-                from rl.random_learner import RandomLearner
-
-                winrate = self.agent_duel(self, RandomLearner(), game=game, n_games=200)
-                print(f"Episode {ep} | eps={self.eps:.3f} | winrate vs random={winrate:.2%}")
 
     @abstractmethod
     def optimal_choice(self, game: RLEnv) -> ScoredAction:

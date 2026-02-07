@@ -22,7 +22,7 @@ class ConnectKEnv(RLEnv):
         return np.flatnonzero(self.board.ravel() == 0).astype(np.int32, copy=False)
 
     @property
-    def obs(self):
+    def obs(self) -> bytes:
         return self.board.astype("int8", copy=False).tobytes()
 
     @property

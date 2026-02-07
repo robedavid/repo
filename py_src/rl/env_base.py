@@ -23,7 +23,7 @@ class RLEnv(ABC):
         pass
 
     @property
-    def obs(self):
+    def obs(self) -> bytes:
         raise NotImplementedError
 
     @abstractmethod
