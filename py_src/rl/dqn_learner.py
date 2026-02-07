@@ -20,7 +20,7 @@ class _Transition:
 
 
 class _DQNMLP(torch.nn.Module):
-    def __init__(self, n_actions: int, n: int = 512) -> None:
+    def __init__(self, n_actions: int, n: int) -> None:
         super().__init__()
         self.net = torch.nn.Sequential(torch.nn.LazyLinear(n), torch.nn.ReLU(), torch.nn.Linear(n, n), torch.nn.ReLU(), torch.nn.Linear(n, n_actions))
 
@@ -32,6 +32,7 @@ class DQNAgent(RLAgent):
     def __init__(
         self,
         n_actions: int,
+        n_hidden: int = 512,
         lr: float = 2.5e-4,
         gamma: float = 0.99,
         warmup: int = 5_000,
@@ -41,8 +42,8 @@ class DQNAgent(RLAgent):
         replay_capacity: int = 200_000,
     ):
         super().__init__()
-        self.q: [_DQNMLP] = _DQNMLP(n_actions).to(self.device)
-        self.tgt: [_DQNMLP] = _DQNMLP(n_actions).to(self.device)
+        self.q: [_DQNMLP] = _DQNMLP(n_actions, n=n_hidden).to(self.device)
+        self.tgt: [_DQNMLP] = _DQNMLP(n_actions, n=n_hidden).to(self.device)
         self.tgt.load_state_dict(self.q.state_dict())
         self.replay: [_Transition] = deque(maxlen=replay_capacity)
         self.gamma = gamma
