@@ -7,6 +7,6 @@ from rl.dqn_learner import DQNAgent
 
 if __name__ == "__main__":
     game = ConnectKEnv(nrows=9, ncols=8, k=4, use_gravity=True)
-    player = DQNAgent(n_actions=8)
+    player = TabularQLearner()
     player.train(game=game, eval_every=5_000, episodes=30_000)
     RLAgent.agent_duel(player, RandomLearner(), game=game, verbose=True)

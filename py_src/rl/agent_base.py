@@ -27,13 +27,15 @@ class RLAgent:
     def agent_duel(cls, lhs, rhs, game: RLEnv, n_games: int = 1, verbose: bool = False):
         out = {lhs.name: 0, rhs.name: 0, "draw": 0}
         for ep in range(n_games):
-            obs = game.reset()
+            obs = game.start_new_game()
             players = [lhs, rhs] if ep % 2 == 0 else [rhs, lhs]
             is_done = False
             while not is_done:
                 for idx, player in enumerate(players):
+                    game.new_turn()
                     if verbose:
                         print(f"Player {player.name} playing")
+                    # res plays as the current player
                     res = game.step(player.optimal_choice(game).action)
                     if verbose:
                         game.render()
