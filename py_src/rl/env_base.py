@@ -11,7 +11,7 @@ class StepResult:
 class RLEnv(ABC):
 
     @abstractmethod
-    def reset(self):
+    def start_new_game(self):
         pass
 
     @property
@@ -22,10 +22,14 @@ class RLEnv(ABC):
     def step(self, action: int) -> StepResult:
         pass
 
-    @property
-    def obs(self) -> bytes:
-        raise NotImplementedError
+    @abstractmethod
+    def folded_obs(self, player: int = None) -> bytes:
+        pass
 
     @abstractmethod
     def render(self):
+        pass
+
+    @abstractmethod
+    def new_turn(self):
         pass

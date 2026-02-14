@@ -22,9 +22,9 @@ class TabularQLearner(RLAgent):
         return hash(res)
 
     @final
-    def optimal_choice(self, game: RLEnv) -> ScoredAction:
+    def optimal_choice(self, game: RLEnv, player: int = None) -> ScoredAction:
         res = ScoredAction()
-        state_key = self.make_key(game.obs)
+        state_key = self.make_key(game.folded_obs(player=player))
         for action in np.random.permutation(game.legal_actions):
             sc = self.Q[(state_key, action)]
             if sc > res.score or res.action is None:
@@ -33,10 +33,12 @@ class TabularQLearner(RLAgent):
         return res
 
     @final
-    def update(self, action: int, cur_obs: [int], res: StepResult, game: RLEnv):
-        state_key = self.make_key(cur_obs)
+    def update(self, action: int, pre_action_folded_board: [int], res: StepResult, post_update_game: RLEnv):
+        state_key = self.make_key(pre_action_folded_board)
         old_val = self.Q[(state_key, action)]
         target = res.reward
         if not res.done:
-            target -= self.gamma * self.optimal_choice(game=game).score
-        self.Q[(state_key, action)] = old_val + self.alpha * (target - old_val)
+            # Look at the game from the perspective of the opponent, and picks its best potential choice
+            best_next_score = self.optimal_choice(game=post_update_game, player=-post_update_game.current_player).score
+            target -= self.gamma * best_next_score
+        self.Q[(state_key, action)] += self.alpha * (target - old_val)

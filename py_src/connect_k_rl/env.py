@@ -9,14 +9,13 @@ class ConnectKEnv(RLEnv):
         self.use_gravity = use_gravity
         self.k = k or nrows
         assert self.k <= self.nrows and self.k <= self.ncols
-        self.reset()
+        self.start_new_game()
 
-    def reset(self):
+    def start_new_game(self):
         self.board = np.zeros((self.nrows, self.ncols), dtype=np.int8)
         self.current_player = 1
         self.nmoves = 0
         self.winner = None
-        return self.obs
 
     @property
     def legal_actions(self) -> np.ndarray:
@@ -24,9 +23,10 @@ class ConnectKEnv(RLEnv):
             return np.flatnonzero(self.board[0, :] == 0).astype(np.int32, copy=False)
         return np.flatnonzero(self.board.ravel() == 0).astype(np.int32, copy=False)
 
-    @property
-    def obs(self) -> bytes:
-        return self.board.astype("int8", copy=False).tobytes()
+    def folded_obs(self, player: int = None) -> bytes:
+        if player is None:
+            player = self.current_player
+        return (self.board * player).astype("int8", copy=False).tobytes()
 
     @property
     def last_move_wins(self):
@@ -62,9 +62,10 @@ class ConnectKEnv(RLEnv):
         if self.last_move_wins:
             self.winner = self.current_player
             return StepResult(reward=1, done=True)
-
-        self.current_player *= -1
         return StepResult(reward=0, done=len(self.legal_actions) == 0)
+
+    def new_turn(self):
+        self.current_player *= -1
 
     def render(self):
         symbols = {0: ".", 1: "X", -1: "O"}

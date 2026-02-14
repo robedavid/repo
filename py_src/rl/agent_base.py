@@ -67,25 +67,36 @@ class RLAgent:
             if ep % eval_every == 0:
                 foo()
 
-            game.reset()
+            game.start_new_game()
             while True:
-                cur_obs = game.obs
+                game.new_turn()  # In practice, flips the player
+
+                pre_action_folded_board = game.folded_obs(player=None)  # Defaults to the current player
+
+                # Explore / Exploit
                 if random.random() < self.eps:
                     action = random.choice(game.legal_actions.tolist())
                 else:
                     action = self.optimal_choice(game=game).action
+
+                # Apply the action -- This DOES NOT modify the player
                 res = game.step(action)
-                self.update(action=action, cur_obs=cur_obs, res=res, game=game)
+
+                # Update the Q-function -- At this stage be careful, the game is still from the view of the player that just played
+                self.update(action=action, pre_action_folded_board=pre_action_folded_board, res=res, post_update_game=game)
+
                 if res.done:
+                    # TODO: Update the opponent as well
                     break
+                assert res.reward == 0  # Only at final state do we give a reward
 
             self._decay_eps()
         foo()
 
     @abstractmethod
-    def optimal_choice(self, game: RLEnv) -> ScoredAction:
+    def optimal_choice(self, game: RLEnv, **kwargs) -> ScoredAction:
         pass
 
     @abstractmethod
-    def update(self, action: int, cur_obs: [int], res: StepResult, game: RLEnv):
+    def update(self, action: int, pre_action_folded_board: [int], res: StepResult, post_update_game: RLEnv):
         pass
